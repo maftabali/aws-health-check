@@ -25,10 +25,34 @@ def list_snapshots(project):
 		for volume in instance.volumes.all():
 			for snapshot in volume.snapshots.all():
 		#tags = { t['Key']:t['Value'] for t in instance.tags or [] }
-				print(', '.join((snapshot.id,snapshot.volume_id,instance.id,snapshot.progress,snapshot.state,snapshot.encrypted and 'Encrypted' or 'Not Encrypted')))
+				print(', '.join((snapshot.id,snapshot.volume_id,instance.id,snapshot.progress,snapshot.start_time.strftime("%c"),snapshot.state,snapshot.encrypted and 'Encrypted' or 'Not Encrypted')))
 
 	return
 
+@snapshots.command('create')
+@click.option('--project', default=None)
+def list_snapshots(project):
+	"Create snapshots"
+	if project:
+		filters = [{'Name':'tag:Project','Values':[project]}]
+		instances = ec2.instances.filter(Filters=filters)
+	else:
+		instances = ec2.instances.all()
+
+	for instance in instances:
+		instance.stop()
+		print('Stopping instance {0} ...'.format(instance.id))
+		instance.wait_until_stopped()
+		print('Instance {0} stopped'.format(instance.id))
+		for volume in instance.volumes.all():
+			volume.create_snapshot(Description='Snapshot for volume {0}'.format(volume.id))
+			print('Snapshot initiated for volume {0} on Instance {1}'.format(volume.id, instance.id))
+		#tags = { t['Key']:t['Value'] for t in instance.tags or [] }
+			#	print(', '.join((snapshot.id,snapshot.volume_id,instance.id,snapshot.progress,snapshot.state,snapshot.encrypted and 'Encrypted' or 'Not Encrypted')))
+		instance.start()
+		print('Instance {0} started'.format(instance.id))
+		#instance.wait_until_running()
+	return
 
 @cli.group('volumes')
 def volumes():
