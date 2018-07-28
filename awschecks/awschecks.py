@@ -31,7 +31,7 @@ def list_snapshots(project):
 
 @snapshots.command('create')
 @click.option('--project', default=None)
-def list_snapshots(project):
+def create_snapshots(project):
 	"Create snapshots"
 	if project:
 		filters = [{'Name':'tag:Project','Values':[project]}]
