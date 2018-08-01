@@ -3,6 +3,7 @@ import click
 
 session = boto3.Session(profile_name='awschecker')
 ec2 = session.resource('ec2')
+cb = boto3.client('codebuild')
 
 @click.group()
 def cli():
@@ -54,6 +55,26 @@ def create_snapshots(project):
 		#instance.wait_until_running()
 	return
 
+@snapshots.command('copy')
+@click.option('--project', default=None)
+def copy_snapshots(project):
+	"Copy snapshots"
+	if project:
+		filters = [{'Name':'tag:Project','Values':[project]}]
+		instances = ec2.instances.filter(Filters=filters)
+	else:
+		instances = ec2.instances.all()
+
+	for instance in instances:
+		for volume in instance.volumes.all():
+			for snapshot in volume.snapshots.all():
+		#tags = { t['Key']:t['Value'] for t in instance.tags or [] }
+				snapshot.copy(SourceRegion='us-east-2')
+				print('Copy initiated for {0}'.format(snapshot.id))
+
+		#instance.wait_until_running()
+	return
+
 @cli.group('volumes')
 def volumes():
 	"Commands for volumes"
@@ -67,10 +88,13 @@ def list_volumes(project):
 	else:
 		instances = ec2.instances.all()
 
+	print('VolumeId\t\tInstanceId\tStatus\t   Size\tEncryption')
+	print('-------------------------------------------------------------------------------------------------')
+
 	for instance in instances:
 		for volume in instance.volumes.all():
-		#tags = { t['Key']:t['Value'] for t in instance.tags or [] }
-			print(', '.join((volume.id,instance.id,volume.state,str(volume.size) + ' GiB',volume.encrypted and 'Encrypted' or 'Not Encrypted')))
+
+			print(' '.join((volume.id,instance.id,volume.state,str(volume.size) + ' GiB',volume.encrypted and 'Encrypted' or 'Not Encrypted')))
 
 	return
 
@@ -88,9 +112,11 @@ def list_instances(project):
 	else:
 		instances = ec2.instances.all()
 
+	print('Name\t\tID\t\tStatus\t\tRegion\t\tVPC\t\tDNS')
+	print('------------------------------------------------------------------------------------------------------------------------')
 	for instance in instances:
 		tags = { t['Key']:t['Value'] for t in instance.tags or [] }
-		print(', '.join((tags.get('Name',',<no project>'), instance.id,instance.state['Name'],instance.placement['AvailabilityZone'], instance.public_dns_name)))
+		print(' '.join((tags.get('Name',',<no project>'), instance.id,instance.state['Name'],instance.placement['AvailabilityZone'], instance.vpc_id, instance.public_dns_name)))
 
 @instances.command('stop')
 @click.option('--project',default=None)
@@ -104,8 +130,11 @@ def stop_instances(project):
 		instances = ec2.instances.all()
 
 	for i in instances:
-		print("Stopping {0}...".format(i.id))
-		i.stop()
+		if i.state['Name'] == 'running':
+			print("Stopping instance {0}...".format(i.id))
+			i.stop()
+		else:
+			print('Instance {0} already stopped or not in a state to be stopped'.format(i.id))
 	return
 
 @instances.command('start')
@@ -120,8 +149,11 @@ def start_instances(project):
 		instances = ec2.instances.all()
 
 	for i in instances:
-		print("Starting {0}...".format(i.id))
-		i.start()
+		if i.state['Name'] == 'stopped':
+			print("Starting instance {0}...".format(i.id))
+			i.start()
+		else:
+			print('Instance {0} already started or not in a state to be started'.format(i.id))
 	return
 
 if __name__ == '__main__':

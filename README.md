@@ -1,5 +1,6 @@
 # aws-health-check
-Project to perform checks on an AWS environment
+Project to perform operations on AWS EC2 instances, volumes and snapshots
+Uses boto3 AWS SDK
 
 Create a aws profile with access to the resources that you intend to monitor
 
@@ -21,7 +22,7 @@ where
   list
 
   snapshots:
-  list, create
+  list, create, copy
 
 <project> is optional - Project name tag to filter resources based on Project
 --project <project_name>
