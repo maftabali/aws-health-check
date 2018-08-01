@@ -3,11 +3,30 @@ import click
 
 session = boto3.Session(profile_name='awschecker')
 ec2 = session.resource('ec2')
-cb = boto3.client('codebuild')
+
+client = boto3.client('ec2')
 
 @click.group()
 def cli():
 	"Command Line Interface"
+
+@cli.group('securitygroups')
+def sg():
+	"Commands for security groups"
+@sg.command('list')
+#@click.option('--project', default=None)
+def list_groups():
+	"List all security groups"
+	response = client.describe_security_groups()
+	mylist = response["SecurityGroups"]
+	i=0
+	print("Group Name\t\tGroup ID\t\tDescription\t\t\t\tVPC ID")
+	print("-------------------------------------------------------------------------------------------------------------")
+	while i < len(mylist):
+		print(' | '.join((mylist[i]["GroupName"], mylist[i]["GroupId"],mylist[i]["Description"], mylist[i]["VpcId"])))
+		i+=1
+
+	return
 
 @cli.group('snapshots')
 def snapshots():
@@ -48,11 +67,10 @@ def create_snapshots(project):
 		for volume in instance.volumes.all():
 			volume.create_snapshot(Description='Snapshot for volume {0}'.format(volume.id))
 			print('Snapshot initiated for volume {0} on Instance {1}'.format(volume.id, instance.id))
-		#tags = { t['Key']:t['Value'] for t in instance.tags or [] }
-			#	print(', '.join((snapshot.id,snapshot.volume_id,instance.id,snapshot.progress,snapshot.state,snapshot.encrypted and 'Encrypted' or 'Not Encrypted')))
+
 		instance.start()
 		print('Instance {0} started'.format(instance.id))
-		#instance.wait_until_running()
+
 	return
 
 @snapshots.command('copy')
@@ -68,11 +86,11 @@ def copy_snapshots(project):
 	for instance in instances:
 		for volume in instance.volumes.all():
 			for snapshot in volume.snapshots.all():
-		#tags = { t['Key']:t['Value'] for t in instance.tags or [] }
+
 				snapshot.copy(SourceRegion='us-east-2')
 				print('Copy initiated for {0}'.format(snapshot.id))
 
-		#instance.wait_until_running()
+
 	return
 
 @cli.group('volumes')

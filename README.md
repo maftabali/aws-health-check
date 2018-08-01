@@ -15,7 +15,7 @@ To run
 `pipenv run python awschecks/awschecks.py <resource> <command> <project>`
 
 where
-<resource> is instances, volumes or snapshots
+<resource> is instances, volumes, snapshots or securitygroups
 <command> is dependent on resource
   instances:
   list, start, stop
@@ -25,6 +25,9 @@ where
 
   snapshots:
   list, create, copy
+
+  securitygroups:
+  list
 
 <project> is optional - Project name tag to filter resources based on Project
 --project <project_name>
