@@ -1,7 +1,15 @@
 import boto3
 import click
+import yaml
 
-session = boto3.Session(profile_name='awschecker')
+
+with open("config.yml",'r') as config:
+    cfg = yaml.load(config)
+
+#print(cfg['profile_name'])
+#'awschecker'
+
+session = boto3.Session(profile_name=cfg['profile_name'])
 ec2 = session.resource('ec2')
 
 client = boto3.client('ec2')
